@@ -63,6 +63,9 @@
             #end if
             cp './${noteboook_name}.ipynb' '$jupyter_notebook'
         #end if
+        cd ./jupyter/outputs/ &&
+        sleep 2 &&
+        for file in *; do mv "\$file" "\$file.\${file\#\#*.}"; done
     ]]>
     </command>
     <inputs>
