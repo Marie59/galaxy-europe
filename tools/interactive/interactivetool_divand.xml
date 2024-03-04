@@ -60,6 +60,9 @@
             #end if
             cp './${noteboook_name}.ipynb' '$jupyter_notebook'
         #end if
+        cd ./jupyter/outputs/ &&
+        sleep 2 &&
+        for file in *; do mv "\$file" "\$file.\${file\#\#*.}"; done
     ]]>
     </command>
      <inputs>
@@ -79,9 +82,12 @@
 
     </inputs>
     <outputs>
-        <data name="jupyter_notebook" format="ipynb" label="Executed DIVAnd Notebook"></data>
-        <collection name="output_collection" type="list" label="GPU JupyterLab notebook output collection">
-            <discover_datasets pattern="__designation_and_ext__" directory="jupyter/outputs" visible="true"/>
+        <data name="jupyter_notebook" format="ipynb" label="Executed DIVAnd Notebook"/>
+        <collection name="output_netcdf" type="list" label="DIVAnd netcdf outputs">
+            <discover_datasets pattern="(?P&lt;designation&gt;.+)\.nc" directory="jupyter/outputs" format="netcdf"/>
+        </collection>
+        <collection name="output_all" type="list" label="DIVAnd all outputs">
+            <discover_datasets pattern="__designation_and_ext__" directory="jupyter/outputs"/>
         </collection>
     </outputs>
     <tests>
