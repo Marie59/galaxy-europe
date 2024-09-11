@@ -37,6 +37,31 @@
         </b-alert>
         <LoadingSpan v-else message="Loading workflow" />
     </div>
+    
+    <b-modal
+        id="export-workflow-modal"
+        title="Export Workflow"
+        hide-footer
+    >
+        <div>
+            <b-form-group label="Select export format">
+                <!-- Keep all original options, adding a new one for WPS XML -->
+                <b-form-radio-group v-model="selectedFormat" name="exportFormat">
+                    <b-form-radio value="ga">Galaxy Archive (.ga)</b-form-radio>
+                    <!-- Add the new WPS XML option -->
+                    <b-form-radio value="xml">WPS (XML)</b-form-radio> 
+                    <!-- Other existing options can remain here -->
+                </b-form-radio-group>
+            </b-form-group>
+
+            <b-button
+                variant="primary"
+                @click="exportWorkflow"
+            >
+                Export
+            </b-button>
+        </div>
+    </b-modal>
 </template>
 <script>
 import Vue from "vue";
@@ -50,17 +75,25 @@ export default {
     components: {
         LoadingSpan,
     },
-    props: {
-        id: {
-            type: String,
-            required: true,
-        },
-    },
     data() {
         return {
-            error: null,
-            workflow: null,
+            selectedFormat: "ga", // Default to .ga
         };
+    },
+    methods: {
+        exportWorkflow() {
+            const format = this.selectedFormat;
+            const workflowId = this.workflowId;
+
+            // Construct the API URL with the selected format (ga or xml)
+            const url = `/api/workflows/${workflowId}/download?format=${format}`;
+            
+            // Redirect to the constructed URL, triggering the file download
+            window.location.href = url;
+        },
+    },
+    props: {
+        workflowId: String, // Workflow ID passed from the parent component
     },
     computed: {
         downloadUrl() {
@@ -82,19 +115,6 @@ export default {
     },
     created() {
         this.getWorkflow();
-    },
-    methods: {
-        getWorkflow() {
-            const url = `/api/workflows/${this.id}`;
-            urlData({ url })
-                .then((workflow) => {
-                    this.workflow = workflow;
-                    this.error = null;
-                })
-                .catch((message) => {
-                    this.error = message || "Loading workflow failed.";
-                });
-        },
     },
 };
 </script>
