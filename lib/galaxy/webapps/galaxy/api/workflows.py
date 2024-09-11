@@ -360,40 +360,43 @@ class WorkflowsAPIController(
 
         :type   style:  str
         :param  style:  Style of export. The default is 'export', which is the meant to be used
-                        with workflow import endpoints. Other formats such as 'instance', 'editor',
-                        'run' are more tied to the GUI and should not be considered stable APIs.
-                        The default format for 'export' is specified by the
-                        admin with the `default_workflow_export_format` config
-                        option. Style can be specified as either 'ga' or 'format2' directly
-                        to be explicit about which format to download.
+                    with workflow import endpoints. Other formats such as 'instance', 'editor',
+                    'run' are more tied to the GUI and should not be considered stable APIs.
+                    The default format for 'export' is specified by the
+                    admin with the `default_workflow_export_format` config
+                    option. Style can be specified as either 'ga' or 'format2' directly
+                    to be explicit about which format to download.
 
         :param  instance:                 true if fetch by Workflow ID instead of StoredWorkflow id, false
-                                          by default.
+                                      by default.
         :type   instance:                 boolean
         """
+        # Get the stored workflow
         stored_workflow = self.__get_stored_accessible_workflow(trans, workflow_id, **kwd)
 
         style = kwd.get("style", "export")
         download_format = kwd.get("format")
         version = kwd.get("version")
-        history_id = kwd.get("history_id")
         history = None
-        if history_id:
+        if history_id := kwd.get("history_id"):
             history = self.history_manager.get_accessible(
                 self.decode_id(history_id), trans.user, current_history=trans.history
             )
-        export_format = kwd.get("format", "json-download")  # Default export format
 
-        # Generate the workflow as a dictionary object
-        if export_format == "xml":
+        # Handle WPS XML format download
+        if download_format == "xml":
             workflow_xml = self.workflow_contents_manager.workflow_to_wps_xml(trans, stored_workflow)
-            trans.response.headers["Content-Disposition"] = f'attachment; filename="Workflow-{stored_workflow.name}.xml"'
+            sname = stored_workflow.name
+            sname = "".join(c in util.FILENAME_VALID_CHARS and c or "_" for c in sname)[0:150]
+            trans.response.headers["Content-Disposition"] = f'attachment; filename="Galaxy-Workflow-{sname}.xml"'
             trans.response.set_content_type("application/xml")
             return workflow_xml
-        
+
+        # Default behavior for other formats
         ret_dict = self.workflow_contents_manager.workflow_to_dict(
             trans, stored_workflow, style=style, version=version, history=history
         )
+
         if download_format == "json-download":
             sname = stored_workflow.name
             sname = "".join(c in util.FILENAME_VALID_CHARS and c or "_" for c in sname)[0:150]
@@ -401,9 +404,9 @@ class WorkflowsAPIController(
                 extension = "ga"
             else:
                 extension = "gxwf.json"
-            trans.response.headers[
-                "Content-Disposition"
-            ] = f'attachment; filename="Galaxy-Workflow-{sname}.{extension}"'
+            trans.response.headers["Content-Disposition"] = (
+                f'attachment; filename="Galaxy-Workflow-{sname}.{extension}"'
+            )
             trans.response.set_content_type("application/galaxy-archive")
 
         if style == "format2" and download_format != "json-download":

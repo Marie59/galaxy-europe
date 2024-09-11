@@ -1894,6 +1894,8 @@ class WorkflowContentsManager(UsesAnnotations):
     
         # Other methods
 
+    
+    
     def workflow_to_wps_xml(self, trans, stored_workflow, version=None):
         """
         Generate a WPS-compliant XML from a Galaxy workflow.
@@ -1901,70 +1903,89 @@ class WorkflowContentsManager(UsesAnnotations):
         :return: WPS-compliant XML string
         """
 
-        # Root element with namespaces
-        root = etree.Element("ns31:ProcessOfferings", nsmap={
+        # Define namespaces
+        nsmap = {
             "ns31": "http://www.opengis.net/wps/2.0",
             "ns29": "http://www.opengis.net/ows/2.0"
-        })
+        }
+
+        # Root element with namespaces
+        root = etree.Element("{http://www.opengis.net/wps/2.0}ProcessOfferings", nsmap=nsmap)
 
         # ProcessOffering element
-        process_offering = etree.SubElement(root, "ns31:ProcessOffering", jobControlOptions="sync-execute async-execute dismiss", outputTransmission="reference value", processModel="native", processVersion="1.0.0")
+        process_offering = etree.SubElement(root, "{http://www.opengis.net/wps/2.0}Process", 
+                                            jobControlOptions="sync-execute async-execute dismiss", 
+                                            outputTransmission="reference value", 
+                                            processModel="native", 
+                                            processVersion="1.0.0")
         
         # Process element
-        process_elem = etree.SubElement(process_offering, "ns31:Process")
+        process_elem = etree.SubElement(process_offering, "{http://www.opengis.net/wps/2.0}Process")
 
         # Workflow Title and Abstract
-        title_elem = etree.SubElement(process_elem, "ns29:Title", attrib={"xml:lang": "en-EN"})
+        title_elem = etree.SubElement(process_elem, "{http://www.opengis.net/ows/2.0}Title", 
+                                    nsmap={"xml": "http://www.w3.org/XML/1998/namespace"})
         title_elem.text = stored_workflow.name
-        abstract_elem = etree.SubElement(process_elem, "ns29:Abstract", attrib={"xml:lang": "en-EN"})
+
+        abstract_elem = etree.SubElement(process_elem, "{http://www.opengis.net/ows/2.0}Abstract", 
+                                        nsmap={"xml": "http://www.w3.org/XML/1998/namespace"})
         abstract_elem.text = "Generated from Galaxy workflow."
 
         # Identifier for the process
-        identifier_elem = etree.SubElement(process_elem, "ns29:Identifier")
+        identifier_elem = etree.SubElement(process_elem, "{http://www.opengis.net/ows/2.0}Identifier")
         identifier_elem.text = f"urn:exa:wps:examind::galaxy:{stored_workflow.name.replace(' ', '_')}"
 
         # Process Inputs
         for step in stored_workflow.latest_workflow.steps:
-            input_elem = etree.SubElement(process_elem, "ns31:Input")
+            tool_id = step.tool_id or "unknown_tool"  # Provide a default value if tool_id is None
+            input_elem = etree.SubElement(process_elem, "{http://www.opengis.net/wps/2.0}Input")
             
-            input_title = etree.SubElement(input_elem, "ns29:Title", attrib={"xml:lang": "en-EN"})
-            input_title.text = step.tool_id
+            input_title = etree.SubElement(input_elem, "{http://www.opengis.net/ows/2.0}Title", 
+                                        nsmap={"xml": "http://www.w3.org/XML/1998/namespace"})
+            input_title.text = tool_id
 
-            input_abstract = etree.SubElement(input_elem, "ns29:Abstract", attrib={"xml:lang": "en-EN"})
-            input_abstract.text = f"Input for tool {step.tool_id}"
+            input_abstract = etree.SubElement(input_elem, "{http://www.opengis.net/ows/2.0}Abstract", 
+                                            nsmap={"xml": "http://www.w3.org/XML/1998/namespace"})
+            input_abstract.text = f"Input for tool {tool_id}"
 
-            input_identifier = etree.SubElement(input_elem, "ns29:Identifier")
-            input_identifier.text = f"urn:exa:wps:examind::galaxy:input:{step.tool_id.replace(' ', '_')}"
+            input_identifier = etree.SubElement(input_elem, "{http://www.opengis.net/ows/2.0}Identifier")
+            input_identifier.text = f"urn:exa:wps:examind::galaxy:input:{tool_id.replace(' ', '_')}"
 
             # Assuming the input is LiteralData for now. Adjust as per workflow inputs.
-            literal_data = etree.SubElement(input_elem, "ns31:LiteralData")
-            format_elem = etree.SubElement(literal_data, "ns31:Format", mimeType="text/plain", default="true")
-            literal_data_domain = etree.SubElement(literal_data, "LiteralDataDomain")
-            any_value = etree.SubElement(literal_data_domain, "ns29:AnyValue")
-            data_type = etree.SubElement(literal_data_domain, "ns29:DataType", ns29__reference="http://www.w3.org/TR/xmlschema-2/#string")
+            literal_data = etree.SubElement(input_elem, "{http://www.opengis.net/wps/2.0}LiteralData")
+            format_elem = etree.SubElement(literal_data, "{http://www.opengis.net/wps/2.0}Format", 
+                                            mimeType="text/plain", default="true")
+            literal_data_domain = etree.SubElement(literal_data, "{http://www.opengis.net/wps/2.0}LiteralDataDomain")
+            any_value = etree.SubElement(literal_data_domain, "{http://www.opengis.net/ows/2.0}AnyValue")
+            data_type = etree.SubElement(literal_data_domain, "{http://www.opengis.net/ows/2.0}DataType", 
+                                        nsmap={"xml": "http://www.w3.org/XML/1998/namespace"})
             data_type.text = "String"
 
         # Process Outputs
-        output_elem = etree.SubElement(process_elem, "ns31:Output")
-        output_title = etree.SubElement(output_elem, "ns29:Title", attrib={"xml:lang": "en-EN"})
+        output_elem = etree.SubElement(process_elem, "{http://www.opengis.net/wps/2.0}Output")
+        output_title = etree.SubElement(output_elem, "{http://www.opengis.net/ows/2.0}Title", 
+                                        nsmap={"xml": "http://www.w3.org/XML/1998/namespace"})
         output_title.text = "Output of the workflow"
-        output_abstract = etree.SubElement(output_elem, "ns29:Abstract", attrib={"xml:lang": "en-EN"})
+
+        output_abstract = etree.SubElement(output_elem, "{http://www.opengis.net/ows/2.0}Abstract", 
+                                        nsmap={"xml": "http://www.w3.org/XML/1998/namespace"})
         output_abstract.text = "Result of workflow execution"
 
-        output_identifier = etree.SubElement(output_elem, "ns29:Identifier")
+        output_identifier = etree.SubElement(output_elem, "{http://www.opengis.net/ows/2.0}Identifier")
         output_identifier.text = f"urn:exa:wps:examind::galaxy:output:{stored_workflow.name.replace(' ', '_')}"
 
-        literal_output_data = etree.SubElement(output_elem, "ns31:LiteralData")
-        format_output = etree.SubElement(literal_output_data, "ns31:Format", mimeType="text/plain", default="true")
-        literal_data_domain_output = etree.SubElement(literal_output_data, "LiteralDataDomain")
-        any_value_output = etree.SubElement(literal_data_domain_output, "ns29:AnyValue")
-        data_type_output = etree.SubElement(literal_data_domain_output, "ns29:DataType", ns29__reference="http://www.w3.org/TR/xmlschema-2/#string")
+        literal_output_data = etree.SubElement(output_elem, "{http://www.opengis.net/wps/2.0}LiteralData")
+        format_output = etree.SubElement(literal_output_data, "{http://www.opengis.net/wps/2.0}Format", 
+                                        mimeType="text/plain", default="true")
+        literal_data_domain_output = etree.SubElement(literal_output_data, "{http://www.opengis.net/wps/2.0}LiteralDataDomain")
+        any_value_output = etree.SubElement(literal_data_domain_output, "{http://www.opengis.net/ows/2.0}AnyValue")
+        data_type_output = etree.SubElement(literal_data_domain_output, "{http://www.opengis.net/ows/2.0}DataType", 
+                                            nsmap={"xml": "http://www.w3.org/XML/1998/namespace"})
         data_type_output.text = "String"
 
         # Convert the XML tree to a string
         xml_str = etree.tostring(root, pretty_print=True, xml_declaration=True, encoding="UTF-8")
         return xml_str
-
 
 
 class RefactorRequest(RefactorActions):

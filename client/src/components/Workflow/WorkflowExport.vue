@@ -16,13 +16,25 @@
                 This workflow is not accessible. Please use the sharing option to "Make Workflow Accessible and Publish"
                 to obtain a URL for importing to another Galaxy.
             </b-alert>
-            <a :href="downloadUrl">Download Workflow</a>
+            
+            <!-- Existing Download Option (Galaxy Archive .ga) -->
+            <a :href="downloadUrl">Download Workflow (GA)</a>
             <div>
                 <small class="text-muted">
                     Downloads a file which can be saved or imported into another Galaxy server.
                 </small>
             </div>
             <hr />
+            
+            <!-- New Download Option (WPS XML) -->
+            <a :href="downloadWpsUrl">Download Workflow (WPS XML)</a>
+            <div>
+                <small class="text-muted">
+                    Downloads the workflow in WPS-compliant XML format.
+                </small>
+            </div>
+            <hr />
+
             <a :href="svgUrl">Create Image</a>
             <div>
                 <small class="text-muted"> Download an image of the workflow in SVG format. </small>
@@ -37,67 +49,41 @@
         </b-alert>
         <LoadingSpan v-else message="Loading workflow" />
     </div>
-    
-    <b-modal
-        id="export-workflow-modal"
-        title="Export Workflow"
-        hide-footer
-    >
-        <div>
-            <b-form-group label="Select export format">
-                <!-- Keep all original options, adding a new one for WPS XML -->
-                <b-form-radio-group v-model="selectedFormat" name="exportFormat">
-                    <b-form-radio value="ga">Galaxy Archive (.ga)</b-form-radio>
-                    <!-- Add the new WPS XML option -->
-                    <b-form-radio value="xml">WPS (XML)</b-form-radio> 
-                    <!-- Other existing options can remain here -->
-                </b-form-radio-group>
-            </b-form-group>
-
-            <b-button
-                variant="primary"
-                @click="exportWorkflow"
-            >
-                Export
-            </b-button>
-        </div>
-    </b-modal>
 </template>
+
 <script>
-import Vue from "vue";
 import BootstrapVue from "bootstrap-vue";
+import LoadingSpan from "components/LoadingSpan";
 import { withPrefix } from "utils/redirect";
 import { urlData } from "utils/url";
-import LoadingSpan from "components/LoadingSpan";
+import Vue from "vue";
+
 Vue.use(BootstrapVue);
 
 export default {
     components: {
         LoadingSpan,
     },
-    data() {
-        return {
-            selectedFormat: "ga", // Default to .ga
-        };
-    },
-    methods: {
-        exportWorkflow() {
-            const format = this.selectedFormat;
-            const workflowId = this.workflowId;
-
-            // Construct the API URL with the selected format (ga or xml)
-            const url = `/api/workflows/${workflowId}/download?format=${format}`;
-            
-            // Redirect to the constructed URL, triggering the file download
-            window.location.href = url;
+    props: {
+        id: {
+            type: String,
+            required: true,
         },
     },
-    props: {
-        workflowId: String, // Workflow ID passed from the parent component
+    data() {
+        return {
+            error: null,
+            workflow: null,
+        };
     },
     computed: {
+        // Existing download URL for Galaxy Archive (.ga) format
         downloadUrl() {
             return withPrefix(`/api/workflows/${this.workflow.id}/download?format=json-download`);
+        },
+        // New download URL for WPS XML format
+        downloadWpsUrl() {
+            return withPrefix(`/api/workflows/${this.workflow.id}/download?format=xml`);
         },
         importUrl() {
             const location = window.location;
@@ -115,6 +101,19 @@ export default {
     },
     created() {
         this.getWorkflow();
+    },
+    methods: {
+        getWorkflow() {
+            const url = `/api/workflows/${this.id}`;
+            urlData({ url })
+                .then((workflow) => {
+                    this.workflow = workflow;
+                    this.error = null;
+                })
+                .catch((message) => {
+                    this.error = message || "Loading workflow failed.";
+                });
+        },
     },
 };
 </script>
