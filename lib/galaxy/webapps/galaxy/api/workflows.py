@@ -382,6 +382,15 @@ class WorkflowsAPIController(
             history = self.history_manager.get_accessible(
                 self.decode_id(history_id), trans.user, current_history=trans.history
             )
+        export_format = kwd.get("format", "json-download")  # Default export format
+
+        # Generate the workflow as a dictionary object
+        if export_format == "xml":
+            workflow_xml = self.workflow_contents_manager.workflow_to_wps_xml(trans, stored_workflow)
+            trans.response.headers["Content-Disposition"] = f'attachment; filename="Workflow-{stored_workflow.name}.xml"'
+            trans.response.set_content_type("application/xml")
+            return workflow_xml
+        
         ret_dict = self.workflow_contents_manager.workflow_to_dict(
             trans, stored_workflow, style=style, version=version, history=history
         )
